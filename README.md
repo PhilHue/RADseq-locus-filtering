@@ -1,1 +1,1 @@
-# RADseq_locus_filtering
+# RADseq-locus-filtering
