@@ -1,7 +1,7 @@
 # RADseq-locus-filtering
 
 We are pleased to provide small yet helpful tools for locus parsing and filtering to the scientific community and hope they meet your needs.
-If you use one of these scripts, please cite: XYZ
+If you use the scripts for your project, please cite: XYZ
 
 
 
