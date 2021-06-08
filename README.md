@@ -5,7 +5,7 @@ If you use one of these scripts, please cite: XYZ
 
 
 
-Parsing locus properties and subsequent filtering
+Parsing locus properties and subsequent filtering:
 
 The Perl script 'parse_loci_V3' parses the locus properties and creates a .txt file including the specific locus ID, the locus length, the number of samples, SNPs, PIS and VAR and proportion of missing data of each locus. The input is the ipyrad .loci file. Make sure that the Perl script and the .loci file are in the current working directory. The syntax is: perl parse_loci_V3 [name of .loci file]. The content of the output .txt file can be copied into an Excel file. The loci can now be sorted respecting varying requirements. 
 
@@ -16,7 +16,7 @@ The individual phylip files can now be concatenated to a supermatrix using FASco
 In case of troubles, please contact: 'huehn@uni-mainz.de' or 'm.dillenberger@fu-berlin.de' or 'riegerb@uni-mainz.de'.
 
 
-Generating input files for site-based inference using SVDquartets
+Generating input files for site-based inference using SVDquartets:
 
 The python script 'filter_FcC_loci.py' and the perl script 'pyrad2fasta_edit_MGE.pl' can be used to create input data for SVDQuartets from an ipyrad loci file. They are not meant to be capable to achive that task alone. Instead they were written as small and flexible tools and are adaptable with minor effort to fulfill other tasks as well. 
 
