@@ -1,0 +1,269 @@
+#!/usr/bin/perl
+
+########################################################################################
+#                                                                                      #
+#       script to parse locus properties using the ipyrad .loci output file            #
+#                                                                                      #
+#   by Benjamin Rieger, Institute of Organismic and Molecular Evolution, JGU Mainz     #
+#                                                                                      #
+########################################################################################
+
+##########   check input   ##########
+
+$0 =~ s/.*\/(.+)/$1/;
+unless (@ARGV >= 1)
+{
+        print STDERR "\n\n$0\n";
+        print STDERR "-" x length ($0);
+        print STDERR "\nscript to \n";
+	print STDERR "blablabla\n";
+        print STDERR "\n";
+        print STDERR "USAGE\n";
+        print STDERR "$0 [*.loci]\n";
+	print STDERR "\n";
+        print STDERR "DESCRIPTION\n";
+        print STDERR "- file : standard (tab-separated) file\n";
+	print STDERR "\n\n";
+        exit;
+}
+
+my $file = shift (@ARGV);
+die "\n$file: no such file!\n\n" unless (-f $file);
+my $output = $file;
+$output =~ s/(.+)\..*/$1/;
+
+##########   /check input   ##########
+
+print STDERR "\nrunning $0\n";
+my $starttime = time;
+
+print STDERR "\nparsing file '$file'...";
+
+if ($file =~ m/\.gz$/)
+{
+	open (DAT, "gunzip -c $file |") || die "\ncouldn't open pipe to file '$file'!\n\n";
+}
+else
+{
+	open (DAT, "<", "$file") || die "\ncouldn't open file '$file'!\n\n";
+}
+
+my $size_of_file = -s $file;
+my $perc_counter = 0;
+
+my %BUFF;
+my %LEN_SAMPLE;
+my %FREQ;
+my %LEN_VAS_SNP;
+
+my %ID2LOC;
+
+my $count_blocks = 0;
+my $count_total_loci = 0;
+my $count_loci_local = 0;
+
+my %ALL_ASS;
+
+while (<DAT>)
+{
+	if ($perc_counter >= 1000)
+	{
+		print STDERR "\rparsing file '$file'...",int ((tell(DAT) * 100)/$size_of_file),"\%";
+		
+		$perc_counter = 0;
+	}
+	
+	$perc_counter++;
+	
+	chomp ($_);
+	$_ =~ s/\s+/\t/g;
+	my @L = split (/\t/, $_);
+
+	#####   WORK IN HERE   #####
+
+	my $loci_len = length ($L[1]);
+
+	if ($_ =~ m/^\/\/.*\|(\d+)[\|:]/)
+	{
+		$count_blocks++;
+		$FREQ{$count_loci_local}++;
+
+		my $snp = $_ =~ tr/\*/\*/;
+		my $vas = $_ =~ tr/\-/\-/;
+
+		die "\n\nline $. : # of length keys in BUFF != 1!\n" unless (keys (%BUFF) == 1);
+
+		my $local_len = 0;
+		for my $len (keys (%BUFF))
+		{
+			$LEN_VAS_SNP{$len}{$vas}{$snp}++;
+			$local_len = $len;
+		}
+
+		$ID2LOC{$1} = "$local_len\t$count_loci_local\t$vas\t$snp\t".($vas + $snp);
+
+		%BUFF = ();
+		$count_loci_local = 0;
+	}
+	else
+	{
+		$BUFF{$loci_len}++;
+		$count_total_loci++;
+		$count_loci_local++;
+		
+		$LEN_SAMPLE{$L[0]}{$loci_len}++;
+
+		$ALL_ASS{$L[0]}++
+	}
+
+	#####   /WORK IN HERE   #####
+}
+
+close (DAT);
+
+
+delete($ALL_ASS{'reference'});
+my $max_samples = scalar(keys(%ALL_ASS));
+
+print STDERR "\rparsing file '$file'......done!\n";
+print STDERR "---> counted ".i2d ($count_blocks)." blocks\n";
+print STDERR "---> counted ".i2d ($count_total_loci)." loci\n";
+
+
+
+open (CLUST, ">", "${output}_locus_properties.txt") || die "\ncouldn't open file '${output}_locus_properties.txt'!\n\n";
+
+
+print CLUST "locus_ID\tlength_nt\tsamples\tSNP\tPIS\tVAR\tvariability\tmissingness_pct\n";
+for my $id (sort {$a <=> $b} keys (%ID2LOC))
+{
+	my @LOC = split(/\t/, $ID2LOC{$id});
+	my $varia = (($LOC[4] / $LOC[0]) / $LOC[1]) * 100;
+
+	my $missign = 100 - (($LOC[1] / $max_samples) * 100);
+	
+	######################################
+	### ENTWEDER GANZE AUSGABE...
+	#print CLUST "$id\t$ID2LOC{$id}\t$varia\t$missign\n";
+	
+	### ...ODER VERKUERZTE NACHKOMMASTELLEN (DIE   '3'   IN   '%.3f'   BESTIMMT DIE NACHKOMMASTELLE)
+	printf CLUST "$id\t$ID2LOC{$id}\t%.3f\t%.3f\n", $varia, $missign;
+	### einfach auskommentieren was nicht gewünscht
+	######################################
+}
+
+close (CLUST);
+
+
+
+
+
+### FOR CHECK ONLY
+
+open (SAM, ">", "${output}_LENGTH_ALL_FOR_CHECK.txt") || die "\ncouldn't open file '${output}_LENGTH_ALL_FOR_CHECK.txt'!\n\n";
+
+for my $sample (sort {$a cmp $b} keys (%LEN_SAMPLE))
+{
+	print SAM "$sample\nlength\tfrequency\n";
+
+	for my $len (sort {$a <=> $b} keys (%{$LEN_SAMPLE{$sample}}))
+	{
+		print SAM "$len\t$LEN_SAMPLE{$sample}{$len}\n";
+	}
+}
+
+close (SAM);
+	
+### /FOR CHECK ONLY
+
+my $max_x = 0;
+for my $sample (sort {$a cmp $b} keys (%LEN_SAMPLE))
+{
+	$max_x = scalar(keys (%{$LEN_SAMPLE{$sample}})) if (scalar(keys (%{$LEN_SAMPLE{$sample}})) >= $max_x);
+}
+
+print STDERR "\nFOUND 'max_x' == $max_x\n\n";
+my @BUFF;
+my $x = 0;
+my $y = 0;
+my %CHECK;
+
+for my $sample (sort {$a cmp $b} keys (%LEN_SAMPLE))
+{
+	$BUFF[$y][$x] = $sample.";";
+	$BUFF[$y][$x + 1] = ";";
+	#unless(exists ($CHECK{"${y}_${x}"})){$CHECK{"${y}_${x}"}++}else{die "\n\n${y}_${x} : already there!!\n"}print STDERR "${y}_${x}\n";
+	$y++;
+	$BUFF[$y][$x] = "length;";
+	$BUFF[$y][$x + 1] = "frequency;";
+	#unless(exists ($CHECK{"${y}_${x}"})){$CHECK{"${y}_${x}"}++}else{die "\n\n${y}_${x} : already there!!\n"}print STDERR "${y}_${x}\n";
+	$y++;
+
+	my $local_max_x = scalar(keys (%{$LEN_SAMPLE{$sample}}));
+	for my $len (sort {$a <=> $b} keys (%{$LEN_SAMPLE{$sample}}))
+	{
+		$BUFF[$y][$x] = "$len;";
+		$BUFF[$y][$x + 1] = "$LEN_SAMPLE{$sample}{$len};";
+		#unless(exists ($CHECK{"${y}_${x}"})){$CHECK{"${y}_${x}"}++}else{die "\n\n${y}_${x} : already there!!\n"}print STDERR "${y}_${x}\n";
+		$y++;
+	}
+	for (my $xx = $local_max_x + 1; $xx <= $max_x; $xx++)
+	{
+		$BUFF[$y][$x] = ";";
+		$BUFF[$y][$x + 1] = ";";
+		$y++;
+	}
+	
+	$y = 0;
+	$x += 2;
+}
+
+
+open (SAM, ">", "${output}_LENGTH_ALL.csv") || die "\ncouldn't open file '${output}_LENGTH_ALL.csv'!\n\n";
+
+for (my $y = 0; $y <= $#BUFF; $y++)
+{
+	for (my $x = 0; $x <= $#{$BUFF[$y]}; $x++)
+	{
+		print SAM "$BUFF[$y][$x]";
+	}
+	print SAM "\n";
+}
+
+close (SAM);
+	
+
+
+
+my $endtime = time;
+print STDERR "---> computational time: ",$endtime - $starttime ," seconds\n\n";
+
+#########################
+#######   subroutine   #########
+#########################
+
+sub i2d
+{
+        my $num = $_[0];
+	$num =~ s/\s+//g;
+
+	my $dec;
+	if ($num =~ m/(\d+)\.(\d+)/)
+	{
+		$num = $1;
+		$dec = $2;
+	}
+
+	my $new_num;
+	while ($num =~ m/(\d*)(\d{3})$/)
+	{
+		$num = $1;
+		$new_num = ",$2".$new_num;
+	}
+
+	$new_num = $num.$new_num;
+	$new_num =~ s/^,//;
+
+	$new_num .= ".".$dec if ($dec);
+	return ($new_num);
+}
