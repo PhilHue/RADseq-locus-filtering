@@ -18,7 +18,7 @@ In case of troubles, please contact: 'huehn@uni-mainz.de' or 'm.dillenberger@fu-
 
 Generating input files for site-based inference using SVDquartets:
 
-The python script 'filter_FcC_loci.py' and the perl script 'pyrad2fasta_edit_MGE.pl' can be used to create input data for SVDQuartets from an ipyrad loci file. They are not meant to be capable to achive that task alone. Instead they were written as small and flexible tools and are adaptable with minor effort to fulfill other tasks as well. 
+The python script 'filter_FcC_loci.py' and the perl script 'pyrad2fasta_edit_MGE.pl' can be used to create input data for SVDquartets from an ipyrad .loci file. They are not meant to be capable to achive that task alone. Instead they were written as small and flexible tools and are adaptable with minor effort to fulfill other tasks as well. 
 
 An example where they were used together with additional software to create three different kind of data sets for SVDQuartets is provided in the bash script 'SVDquartets_from_ipyrad_wrapper_example.bash'. Here we created the data sets 'SVD-A' from haploid assembled ipyrad sequence data and multiple SNP positions per locus, 'SVD-C' from haploid data but with a single, randomly chosen SNP position per locus, and 'SVD-B' from diploid assembled ipyrad sequence data and multiple SNP positions per locus. For a more detailed explanation of these examples, see Huehn et al. 2021...(Hier Ref einfügen).
 
